@@ -4,6 +4,8 @@
 
 This repo includes a reference implementation of the DPO algorithm for training language models from preference data, as described in the paper [Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290).
 
+The code here supports any causal HuggingFace model- look at our examples in `config/model` to add your own. Adding your own datasets is also easy. See [the README section](https://github.com/huggingface/peft) on adding datasets.
+
 The DPO pipeline has two stages:
 
 1. Run supervised fine-tuning (SFT) on the dataset(s) of interest.
