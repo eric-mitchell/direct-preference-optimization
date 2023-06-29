@@ -1,33 +1,33 @@
-import os
 import getpass
-from datetime import datetime
-import torch
-import random
-import numpy as np
-import torch.distributed as dist
-import inspect
 import importlib.util
-import socket
+import inspect
 import os
-from typing import Dict, Union, Type, List
+import random
+import socket
+from datetime import datetime
+from typing import Dict, List, Type, Union
+
+import numpy as np
+import torch
+import torch.distributed as dist
 
 
 def get_remote_file(remote_path, local_path=None):
-    hostname, path = remote_path.split(':')
+    hostname, path = remote_path.split(":")
     local_hostname = socket.gethostname()
-    if hostname == local_hostname or hostname == local_hostname[:local_hostname.find('.')]:
+    if hostname == local_hostname or hostname == local_hostname[: local_hostname.find(".")]:
         return path
-    
+
     if local_path is None:
         local_path = path
-    # local_path = local_path.replace('/scr-ssd', '/scr')    
+    # local_path = local_path.replace('/scr-ssd', '/scr')
     if os.path.exists(local_path):
         return local_path
     local_dir = os.path.dirname(local_path)
     os.makedirs(local_dir, exist_ok=True)
 
-    print(f'Copying {hostname}:{path} to {local_path}')
-    os.system(f'scp {remote_path} {local_path}')
+    print(f"Copying {hostname}:{path} to {local_path}")
+    os.system(f"scp {remote_path} {local_path}")
     return local_path
 
 
@@ -41,10 +41,10 @@ def get_local_dir(prefixes_to_resolve: List[str]) -> str:
     """Return the path to the cache directory for this user."""
     for prefix in prefixes_to_resolve:
         if os.path.exists(prefix):
-            return f"{prefix}/{getpass.getuser()}"
+            return f"{prefix}"
     os.makedirs(prefix)
-    return f"{prefix}/{getpass.getuser()}"
-    
+    return f"{prefix}"
+
 
 def get_local_run_dir(exp_name: str, local_dirs: List[str]) -> str:
     """Create a local directory to store outputs for this run, and return its path."""
@@ -79,6 +79,7 @@ def all_gather_if_needed(values: torch.Tensor, rank: int, world_size: int) -> to
     if world_size == 1:
         return values
 
+    rank = int(os.environ.get("LOCAL_RANK"))
     all_values = [torch.empty_like(values).to(rank) for _ in range(world_size)]
     dist.all_gather(all_values, values)
     cat_function = torch.cat if values.dim() > 0 else torch.stack
@@ -88,7 +89,7 @@ def all_gather_if_needed(values: torch.Tensor, rank: int, world_size: int) -> to
 def formatted_dict(d: Dict) -> Dict:
     """Format a dictionary for printing."""
     return {k: (f"{v:.5g}" if type(v) == float else v) for k, v in d.items()}
-    
+
 
 def disable_dropout(model: torch.nn.Module):
     """Disable dropout in a model."""
@@ -97,18 +98,18 @@ def disable_dropout(model: torch.nn.Module):
             module.p = 0
 
 
-def print_gpu_memory(rank: int = None, message: str = ''):
+def print_gpu_memory(rank: int = None, message: str = ""):
     """Print the amount of GPU memory currently allocated for each GPU."""
     if torch.cuda.is_available():
         device_count = torch.cuda.device_count()
         for i in range(device_count):
-            device = torch.device(f'cuda:{i}')
+            device = torch.device(f"cuda:{i}")
             allocated_bytes = torch.cuda.memory_allocated(device)
             if allocated_bytes == 0:
                 continue
-            print('*' * 40)
-            print(f'[{message} rank {rank} ] GPU {i}: {allocated_bytes / 1024**2:.2f} MB')
-        print('*' * 40)
+            print("*" * 40)
+            print(f"[{message} rank {rank} ] GPU {i}: {allocated_bytes / 1024**2:.2f} MB")
+        print("*" * 40)
 
 
 def get_block_class_from_model(model: torch.nn.Module, block_class_name: str) -> torch.nn.Module:
@@ -121,11 +122,11 @@ def get_block_class_from_model(model: torch.nn.Module, block_class_name: str) ->
 
 def get_block_class_from_model_class_and_block_name(model_class: Type, block_class_name: str) -> Type:
     filepath = inspect.getfile(model_class)
-    assert filepath.endswith('.py'), f"Expected a .py file, got {filepath}"
+    assert filepath.endswith(".py"), f"Expected a .py file, got {filepath}"
     assert os.path.exists(filepath), f"File {filepath} does not exist"
     assert "transformers" in filepath, f"Expected a transformers model, got {filepath}"
 
-    module_name = filepath[filepath.find('transformers'):].replace('/', '.')[:-3]
+    module_name = filepath[filepath.find("transformers") :].replace("/", ".")[:-3]
     print(f"Searching in file {filepath}, module {module_name} for class {block_class_name}")
 
     # Load the module dynamically
@@ -139,12 +140,22 @@ def get_block_class_from_model_class_and_block_name(model_class: Type, block_cla
     return class_
 
 
-def init_distributed(rank: int, world_size: int, master_addr: str = 'localhost', port: int = 12355, backend: str = 'nccl'):
-    print(rank, 'initializing distributed')
-    os.environ["MASTER_ADDR"] = master_addr
-    os.environ["MASTER_PORT"] = str(port)
-    dist.init_process_group(backend, rank=rank, world_size=world_size)
-    torch.cuda.set_device(rank)
+def init_distributed(rank: int, world_size: int, backend: str = "nccl"):
+    print(rank, "initializing distributed...")
+
+    dist.init_process_group(backend, rank=int(rank), world_size=int(world_size))
+
+    print(rank, "initializing distributed: OK")
+
+
+    local_rank = os.environ.get("LOCAL_RANK", None)
+    if local_rank is None:
+        local_rank = rank
+
+    torch.cuda.set_device(int(local_rank))
+
+    print(f"\tENV.MASTER_ADDR={os.environ['MASTER_ADDR']}")
+    print(f"\tENV.MASTER_PORT={os.environ['MASTER_PORT']}")
 
 
 class TemporarilySeededRandom:
