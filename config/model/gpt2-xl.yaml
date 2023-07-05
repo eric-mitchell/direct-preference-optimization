@@ -1,0 +1,8 @@
+name_or_path: gpt2-xl
+tokenizer_name_or_path: null
+archive: null
+block_name: GPT2Block
+
+policy_dtype: float32
+fsdp_policy_mp: null
+reference_dtype: float16

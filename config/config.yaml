@@ -38,6 +38,9 @@ local_dirs:
 #   is recommended, because they are slow
 sample_during_eval: true
 
+# how many model samples to generate during evaluation
+n_eval_model_samples: 16
+
 # whether to eval at the very beginning of training
 do_first_eval: true
 
