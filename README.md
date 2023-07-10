@@ -51,7 +51,7 @@ Run DPO on Pythia 6.9B with effective batch size 64:
 
 Let's work through a complete example training pythia 2.8B on the Anthropic-HH dataset.
 
-See sample wandb outputs for this example [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos).
+See sample wandb outputs for this example [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos) (tagged `readme-example`).
 
 ### Step 1: Set up environment
 
@@ -70,7 +70,7 @@ We'll take advantage of FSDP's mixed precision in bfloat16 to speed up training;
 
 > Note: this command is run on a machine with 4 80GB A100s; on this hardware, SFT takes about 1hr 30min. If you have less compute available, you might need to increase the number of gradient accumulation steps, and SFT will take longer.
 
-**See sample wandb outputs for the SFT step [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos/runs/mnatddpe).**
+**See sample wandb outputs for the SFT step [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos/runs/i4i3ddpp).**
 
 ### Step 3: Run DPO
 
@@ -80,7 +80,7 @@ Check either wandb (if enabled, it is by default) or your output log to find the
 
 On 4 80GB A100s, DPO training took about 2hrs 45min.
 
-**See sample wandb outputs for the DPO step [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos/runs/xxsmcvbl).**
+**See sample wandb outputs for the DPO step [here](https://wandb.ai/eric_anthony_mitchell/dpo-demos/runs/og8q3euz).**
 
 ### Customizing training
 The options for training are in `config/config.yaml`, `config/model/blank_model.yaml`, and `config/loss/dpo.yaml`. See the comments in these files for more information on what they do.
