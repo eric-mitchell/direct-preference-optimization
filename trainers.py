@@ -276,7 +276,7 @@ class BasicTrainer(object):
                     if self.config.loss.name == 'dpo':
                         reference_text_table = wandb.Table(columns=["step", "prompt", "sample"])
 
-                for eval_batch in (tqdm.tqdm(self.eval_batches) if self.rank == 0 else self.eval_batches):
+                for eval_batch in (tqdm.tqdm(self.eval_batches, desc='Computing eval metrics') if self.rank == 0 else self.eval_batches):
                     local_eval_batch = slice_and_move_batch_for_device(eval_batch, self.rank, self.world_size, self.rank)
                     with torch.no_grad():
                         _, eval_metrics = self.get_batch_metrics(local_eval_batch, self.config.loss, train=False)
@@ -284,7 +284,11 @@ class BasicTrainer(object):
                     for k, v in eval_metrics.items():
                         all_eval_metrics[k].extend(v)
 
-                    if self.config.sample_during_eval:
+                if self.config.sample_during_eval:
+                    n_sample_batches = self.config.n_eval_model_samples // self.config.eval_batch_size
+                    sample_batches = self.eval_batches[:n_sample_batches]
+                    for eval_batch in (tqdm.tqdm(sample_batches, desc='Generating samples...') if self.rank == 0 else sample_batches):
+                        local_eval_batch = slice_and_move_batch_for_device(eval_batch, self.rank, self.world_size, self.rank)
                         if 'FSDP' in self.config.trainer:
                             with FSDP.summon_full_params(self.policy, writeback=False, recurse=False):
                                 policy_samples, reference_samples = self.get_batch_samples(local_eval_batch)
@@ -440,13 +444,19 @@ class FSDPTrainer(BasicTrainer):
                 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
                     checkpoint_wrapper,
                     apply_activation_checkpointing,
+                    CheckpointImpl,
+                )
+                non_reentrant_wrapper = functools.partial(
+                    checkpoint_wrapper,
+                    offload_to_cpu=False,
+                    checkpoint_impl=CheckpointImpl.NO_REENTRANT,
                 )
             except Exception as e:
                 rank0_print('FSDP activation checkpointing not available:', e)
             else:
                 check_fn = lambda submodule: isinstance(submodule, wrap_class)
                 rank0_print('Applying activation checkpointing wrapper to policy...')
-                apply_activation_checkpointing(self.policy, checkpoint_wrapper_fn=checkpoint_wrapper, check_fn=check_fn)
+                apply_activation_checkpointing(self.policy, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn)
                 rank0_print('FSDP activation checkpointing enabled!')
 
         if config.loss.name == 'dpo':
