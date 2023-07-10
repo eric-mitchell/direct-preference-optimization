@@ -444,13 +444,19 @@ class FSDPTrainer(BasicTrainer):
                 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
                     checkpoint_wrapper,
                     apply_activation_checkpointing,
+                    CheckpointImpl,
+                )
+                non_reentrant_wrapper = functools.partial(
+                    checkpoint_wrapper,
+                    offload_to_cpu=False,
+                    checkpoint_impl=CheckpointImpl.NO_REENTRANT,
                 )
             except Exception as e:
                 rank0_print('FSDP activation checkpointing not available:', e)
             else:
                 check_fn = lambda submodule: isinstance(submodule, wrap_class)
                 rank0_print('Applying activation checkpointing wrapper to policy...')
-                apply_activation_checkpointing(self.policy, checkpoint_wrapper_fn=checkpoint_wrapper, check_fn=check_fn)
+                apply_activation_checkpointing(self.policy, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn)
                 rank0_print('FSDP activation checkpointing enabled!')
 
         if config.loss.name == 'dpo':
