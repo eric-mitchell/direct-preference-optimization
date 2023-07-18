@@ -5,7 +5,6 @@ import transformers
 from utils import get_local_dir, get_local_run_dir, disable_dropout, init_distributed
 import os
 import hydra
-import torch.distributed as dist
 import torch.multiprocessing as mp
 from omegaconf import OmegaConf, DictConfig
 import trainers
@@ -13,6 +12,7 @@ import wandb
 import json
 import socket
 from typing import Optional, Set
+import resource
 
 
 OmegaConf.register_new_resolver("get_local_run_dir", lambda exp_name, local_dirs: get_local_run_dir(exp_name, local_dirs))
@@ -100,6 +100,9 @@ def main(config: DictConfig):
     if 'FSDP' in config.trainer:
         world_size = torch.cuda.device_count()
         print('starting', world_size, 'processes for FSDP training')
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+        print(f'setting RLIMIT_NOFILE soft limit to {hard} from {soft}')
         mp.spawn(worker_main, nprocs=world_size, args=(world_size, config, policy, reference_model), join=True)
     else:
         print('starting single-process worker')
