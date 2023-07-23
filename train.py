@@ -2,7 +2,7 @@ import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 import torch.nn as nn
 import transformers
-from utils import get_local_dir, get_local_run_dir, disable_dropout, init_distributed
+from utils import get_local_dir, get_local_run_dir, disable_dropout, init_distributed, get_open_port
 import os
 import hydra
 import torch.multiprocessing as mp
@@ -60,6 +60,11 @@ def main(config: DictConfig):
         print('WARNING: eval_every must be divisible by batch_size')
         print('Setting eval_every to', config.eval_every - config.eval_every % config.batch_size)
         config.eval_every = config.eval_every - config.eval_every % config.batch_size
+
+    if 'FSDP' in config.trainer and config.fsdp_port is None:
+        free_port = get_open_port()
+        print('no FSDP port specified; using open port for FSDP:', free_port)
+        config.fsdp_port = free_port
 
     print(OmegaConf.to_yaml(config))
 
