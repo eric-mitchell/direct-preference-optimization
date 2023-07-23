@@ -14,7 +14,7 @@ eval_batch_size: 16
 debug: false
 
 # the port to use for FSDP
-fsdp_port: 12355
+fsdp_port: null
 
 # which dataset(s) to train on; can pass a list like datasets=[hh,shp]
 datasets:
