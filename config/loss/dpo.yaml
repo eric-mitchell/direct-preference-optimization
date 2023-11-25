@@ -5,5 +5,10 @@ name: dpo
 #   the reference model
 beta: ???
 
+# the noise parameter for conservative DPO; should be in range (0, 0.5); interpreted as
+#   the fraction of preference pairs that are flipped
+#   eps=0 is the original DPO loss in the DPO paper
+eps: 0
+
 # if true, use a uniform (maximum entropy) reference model
 reference_free: false
