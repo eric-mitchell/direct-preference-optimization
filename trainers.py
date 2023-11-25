@@ -47,7 +47,7 @@ def preference_loss(policy_chosen_logps: torch.FloatTensor,
                     reference_chosen_logps: torch.FloatTensor,
                     reference_rejected_logps: torch.FloatTensor,
                     beta: float,
-                    eps: float = 0.0,
+                    label_smoothing: float = 0.0,
                     ipo: bool = False,
                     reference_free: bool = False) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
     """Compute the DPO loss for a batch of policy and reference model log probabilities.
@@ -58,7 +58,7 @@ def preference_loss(policy_chosen_logps: torch.FloatTensor,
         reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
         reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
         beta: Temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5. We ignore the reference model as beta -> 0.
-        eps: epsilon for conservative DPO loss, which assumes that preferences are noisy (flipped with probability eps)
+        label_smoothing: conservativeness for DPO loss, which assumes that preferences are noisy (flipped with probability label_smoothing)
         ipo: If True, use the IPO loss instead of the DPO loss.
         reference_free: If True, we ignore the _provided_ reference model and implicitly use a reference model that assigns equal probability to all responses.
 
@@ -78,8 +78,8 @@ def preference_loss(policy_chosen_logps: torch.FloatTensor,
     if ipo:
         losses = (logits - 1/(2 * beta)) ** 2  # Eq. 17 of https://arxiv.org/pdf/2310.12036v2.pdf
     else:
-        # Eq. 3 https://ericmitchell.ai/cdpo.pdf; eps=0 gives original DPO (Eq. 7 of https://arxiv.org/pdf/2305.18290.pdf)
-        losses = -F.logsigmoid(beta * logits) * (1 - eps) - F.logsigmoid(-beta * logits) * eps
+        # Eq. 3 https://ericmitchell.ai/cdpo.pdf; label_smoothing=0 gives original DPO (Eq. 7 of https://arxiv.org/pdf/2305.18290.pdf)
+        losses = -F.logsigmoid(beta * logits) * (1 - label_smoothing) - F.logsigmoid(-beta * logits) * label_smoothing
 
     chosen_rewards = beta * (policy_chosen_logps - reference_chosen_logps).detach()
     rejected_rewards = beta * (policy_rejected_logps - reference_rejected_logps).detach()
@@ -232,7 +232,7 @@ class BasicTrainer(object):
                 reference_chosen_logps, reference_rejected_logps = self.concatenated_forward(self.reference_model, batch)
 
             if loss_config.name == 'dpo':
-                loss_kwargs = {'beta': loss_config.beta, 'reference_free': loss_config.reference_free, 'eps': loss_config.eps, 'ipo': False}
+                loss_kwargs = {'beta': loss_config.beta, 'reference_free': loss_config.reference_free, 'label_smoothing': loss_config.label_smoothing, 'ipo': False}
             elif loss_config.name == 'ipo':
                 loss_kwargs = {'beta': loss_config.beta, 'ipo': True}
             else:
