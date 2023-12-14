@@ -126,10 +126,11 @@ See [this article](https://pytorch.org/blog/efficient-large-scale-training-with-
 # Citing DPO
 If DPO or this repository is useful in your own research, you can use the following BibTeX entry:
 
-    @misc{rafailov2023direct,
-        title={Direct Preference Optimization: Your Language Model is Secretly a Reward Model}, 
-        author={Rafael Rafailov and Archit Sharma and Eric Mitchell and Stefano Ermon and Christopher D. Manning and Chelsea Finn},
+    @inproceedings{
+        rafailov2023direct,
+        title={Direct Preference Optimization: Your Language Model is Secretly a Reward Model},
+        author={Rafael Rafailov and Archit Sharma and Eric Mitchell and Christopher D Manning and Stefano Ermon and Chelsea Finn},
+        booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
         year={2023},
-        eprint={2305.18290},
-        archivePrefix={arXiv},
+        url={https://arxiv.org/abs/2305.18290}
     }
