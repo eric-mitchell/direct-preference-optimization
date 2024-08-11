@@ -1,4 +1,5 @@
 import datasets
+import os
 import torch
 from torch.utils.data import DataLoader, Dataset
 from utils import get_local_dir, TemporarilySeededRandom
@@ -11,12 +12,14 @@ import numpy as np
 from typing import Dict, List, Optional, Iterator, Callable, Union, Tuple
 
 
-def extract_anthropic_prompt(prompt_and_response):
+def extract_anthropic_prompt(chosen, rejected):
     """Extract the anthropic prompt from a prompt and response pair."""
+    # Use the longest common prefix between the chosen and rejected as the prompt
+    common_prefix = os.path.commonprefix([chosen, rejected])
     search_term = '\n\nAssistant:'
-    search_term_idx = prompt_and_response.rfind(search_term)
+    search_term_idx = common_prefix.rfind(search_term)
     assert search_term_idx != -1, f"Prompt and response does not contain '{search_term}'"
-    return prompt_and_response[:search_term_idx + len(search_term)]
+    return chosen[:search_term_idx + len(search_term)]
 
 
 def strip_html_tags(html_string):
@@ -143,7 +146,7 @@ def get_hh(split: str, silent: bool = False, cache_dir: str = None) -> Dict[str,
     print('done')
 
     def split_prompt_and_responses(ex):
-        prompt = extract_anthropic_prompt(ex['chosen'])
+        prompt = extract_anthropic_prompt(ex['chosen'], ex['rejected'])
         chosen_response = ex['chosen'][len(prompt):]
         rejected_response = ex['rejected'][len(prompt):]
         return prompt, chosen_response, rejected_response
