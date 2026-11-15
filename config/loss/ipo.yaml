@@ -1,0 +1,6 @@
+# do IPO preference-based training (https://arxiv.org/pdf/2310.12036v2.pdf)
+name: ipo
+
+# the regularization parameter for IPO; the loss is (logits - 1/(2 * beta)) ** 2,
+#   so lower values mean we care less about the reference model
+beta: ???
