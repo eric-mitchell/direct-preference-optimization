@@ -74,6 +74,8 @@ def get_se(split, silent=False, cache_dir: str = None) -> Dict[str, Dict[str, Un
         pairs = []
         for i in range(len(responses)):
             for j in range(i + 1, len(responses)):
+                if scores[i] == scores[j]:
+                    continue
                 pairs.append((i, j) if scores[i] > scores[j] else (j, i))
 
         data[prompt]['responses'] = responses
